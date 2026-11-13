@@ -48,3 +48,49 @@ foreach ($Adapter in $Adapters) {
     Invoke-CimMethod -InputObject $Adapter -MethodName SetTCPIPNetBIOS -Arguments @{TcpipNetbiosOptions = 2} | Out-Null
 }
 
+
+
+
+
+
+
+
+# ---------------------------------------------------------
+# 4. Disable Weak Kerberos Encryption (RC4)
+# Enforces AES-128 and AES-256 for Kerberos tickets
+# ---------------------------------------------------------
+Write-Host "[+] Enforcing AES Encryption for Kerberos (Disabling RC4/DES)..." -ForegroundColor Green
+$LsaPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Kerberos\Parameters"
+if (-not (Test-Path $LsaPath)) { New-Item -Path $LsaPath -Force | Out-Null }
+# Value 0x7FFFFF38 enforces AES128, AES256, and Future encryption types
+New-ItemProperty -Path $LsaPath -Name "SupportedEncryptionTypes" -Value 2147483448 -PropertyType DWord -Force | Out-Null
+
+
+# ---------------------------------------------------------
+# 5. Disable SMBv1
+# Legacy SMB protocol vulnerable to various exploits (e.g., EternalBlue)
+# ---------------------------------------------------------
+Write-Host "[+] Disabling SMBv1 Protocol..." -ForegroundColor Green
+Disable-WindowsOptionalFeature -Online -FeatureName "SMB1Protocol" -NoRestart | Out-Null
+
+
+# ---------------------------------------------------------
+# 6. Enable Advanced Audit Policy Configuration
+# Forces the system to ignore legacy audit policies and use advanced ones
+# ---------------------------------------------------------
+Write-Host "[+] Enforcing Advanced Audit Policy over legacy options..." -ForegroundColor Green
+$AuditPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"
+New-ItemProperty -Path $AuditPath -Name "SCNoSetSeconds" -Value 1 -PropertyType DWord -Force | Out-Null
+
+
+# ---------------------------------------------------------
+# 7. Secure SamAccountName Spoofing & Domain Joins
+# Limits standard users from joining random machines to the domain (Default is 10)
+# ---------------------------------------------------------
+Write-Host "[+] Setting MachineAccountQuota to 0 (Prevents standard users from joining computers to domain)..." -ForegroundColor Green
+Import-Module ActiveDirectory
+$DomainDN = (Get-ADDomain).DistinguishedName
+Set-ADDomain -Identity $DomainDN -MachineAccountQuota 0
+
+Write-Host "`n[!] Hardening changes completed successfully!" -ForegroundColor Yellow
+Write-Host "[!] A system reboot is required for all changes to take effect." -ForegroundColor Red
