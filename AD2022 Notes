@@ -1,0 +1,50 @@
+According to the 2026 MWCCDC Team Pack, **Team 11** uses the following login usernames:
+
+### **1. NISE / Team Portal**
+
+[NISE Login](https://injects.ccdc.events?utm_source=chatgpt.com)
+
+| Account            | Username  |
+| Member 7           | `team11g` |
+
+### **2. NETLAB+ Competition Stadium**
+
+[NETLAB+ Login](https://ccdc.cit.morainevalley.edu?utm_source=chatgpt.com)
+
+| Member | Username |
+| 7      | `v11u7`  |
+
+### **3. Passwords**
+
+Not included in the PDF
+- NISE passwords.
+- Initial NETLAB+ stadium password.
+- Team assignments.
+
+These are distributed before the competition.
+
+
+
+#Setting password
+$Password = Read-Host -AsSecureString
+
+<NQq\T011;>H
+
+Set-LocalUser -Name "Administrator" -Password $Password
+
+# 1. Disable LLMNR (Link-Local Multicast Name Resolution)
+# Prevents LLMNR spoofing attacks (e.g., Responder tool)
+$DnscachePath = "HKLM:\Software\Policies\Microsoft\Windows NT\DNSClient"
+
+if (-not (Test-Path $DnscachePath)) { New-Item -Path $DnscachePath -Force | Out-Null }
+New-ItemProperty -Path $DnscachePath -Name "EnableMulticast" -Value 0 -PropertyType DWord -Force | Out-Null
+
+# 2. Disable NetBIOS over TCP/IP (NBT-NS)
+# Disables NetBIOS name resolution on all network adapters
+$Adapters = Get-CimInstance -ClassName Win32_NetworkAdapterConfiguration -Filter "IPEnabled = True"
+
+foreach ($Adapter in $Adapters) {
+    # Value 2 disables NetBIOS over TCP/IP
+    Invoke-CimMethod -InputObject $Adapter -MethodName SetTCPIPNetBIOS -Arguments @{TcpipNetbiosOptions = 2} | Out-Null
+}
+
